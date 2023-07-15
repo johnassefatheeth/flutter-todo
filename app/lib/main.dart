@@ -53,12 +53,14 @@ class _TodoListScreenState extends State<TodoListScreen> {
   late TextEditingController _textEditingController;
   late SharedPreferences _preferences;
   late bool _isLoading;
+  late String _currentFilter; // Added this line
 
   @override
   void initState() {
     super.initState();
     _textEditingController = TextEditingController();
     _isLoading = true;
+    _currentFilter = 'All'; // Added this line
     _initializeTodos();
   }
 
@@ -112,6 +114,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
 
   void _filterTodos(String filter) {
     setState(() {
+      _currentFilter = filter; // Update the current filter
       switch (filter) {
         case 'Done':
           _todos = _todos.where((todo) => todo.isDone).toList();
@@ -161,7 +164,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
             ),
           ),
           DropdownButton<String>(
-            value: 'All', // Default filter value
+            value: _currentFilter, // Display the current filter mode
             items: ['All', 'Done', 'Undone', 'Progress', 'Cancel']
                 .map<DropdownMenuItem<String>>((String value) {
               return DropdownMenuItem<String>(
