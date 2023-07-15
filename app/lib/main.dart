@@ -36,6 +36,7 @@ class TodoApp extends StatelessWidget {
       title: 'Todo App',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        // accentcolor:Colors.red
       ),
       home: TodoListScreen(),
     );
