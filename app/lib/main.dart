@@ -114,7 +114,11 @@ class _TodoListScreenState extends State<TodoListScreen> {
 
   void _filterTodos(String filter) {
     setState(() {
-      _currentFilter = filter; // Update the current filter
+      _currentFilter = filter;
+      // Restore the original list of todos
+      _todos = _preferences.getString('todos') != null
+          ? json.decode(_preferences.getString('todos')!) as List
+          : [];
       switch (filter) {
         case 'Done':
           _todos = _todos.where((todo) => todo.isDone).toList();
