@@ -36,7 +36,6 @@ class TodoApp extends StatelessWidget {
       title: 'Todo App',
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        // accentcolor:Colors.red
       ),
       home: TodoListScreen(),
     );
@@ -53,25 +52,50 @@ class _TodoListScreenState extends State<TodoListScreen> {
   late TextEditingController _textEditingController;
   late SharedPreferences _preferences;
   late bool _isLoading;
-  late String _currentFilter; // Added this line
+  late String _currentFilter;
+  late Map<String, dynamic> _currentTheme;
+
+  List<Map<String, dynamic>> _colorThemes = [
+    {
+      'name': 'Blue',
+      'primaryColor': Colors.blue,
+      'accentColor': Colors.blueAccent,
+    },
+    {
+      'name': 'Green',
+      'primaryColor': Colors.green,
+      'accentColor': Colors.greenAccent,
+    },
+    {
+      'name': 'Red',
+      'primaryColor': Colors.red,
+      'accentColor': Colors.redAccent,
+    },
+  ];
 
   @override
   void initState() {
     super.initState();
     _textEditingController = TextEditingController();
     _isLoading = true;
-    _currentFilter = 'All'; // Added this line
+    _currentFilter = 'All';
+    _currentTheme = _colorThemes[0];
     _initializeTodos();
   }
 
   Future<void> _initializeTodos() async {
     _preferences = await SharedPreferences.getInstance();
     final todosString = _preferences.getString('todos');
+    final themeString = _preferences.getString('theme');
     if (todosString != null) {
       final todosJson = json.decode(todosString) as List;
       _todos = todosJson.map((json) => Todo.fromJson(json)).toList();
     } else {
       _todos = [];
+    }
+    if (themeString != null) {
+      _currentTheme =
+          _colorThemes.firstWhere((theme) => theme['name'] == themeString);
     }
     setState(() {
       _isLoading = false;
@@ -81,6 +105,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
   Future<void> _saveTodos() async {
     final todosJson = json.encode(_todos);
     await _preferences.setString('todos', todosJson);
+    await _preferences.setString('theme', _currentTheme['name']);
   }
 
   void _addTodo() {
@@ -115,10 +140,13 @@ class _TodoListScreenState extends State<TodoListScreen> {
   void _filterTodos(String filter) {
     setState(() {
       _currentFilter = filter;
-      // Restore the original list of todos
-      _todos = _preferences.getString('todos') != null
-          ? json.decode(_preferences.getString('todos')!) as List
-          : [];
+      final todosString = _preferences.getString('todos');
+      if (todosString != null) {
+        final todosJson = json.decode(todosString) as List;
+        _todos = todosJson.map((json) => Todo.fromJson(json)).toList();
+      } else {
+        _todos = [];
+      }
       switch (filter) {
         case 'Done':
           _todos = _todos.where((todo) => todo.isDone).toList();
@@ -151,61 +179,86 @@ class _TodoListScreenState extends State<TodoListScreen> {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Todo List'),
+    return MaterialApp(
+      title: 'Todo App',
+      theme: ThemeData(
+        colorScheme:
+            ColorScheme.fromSwatch(primarySwatch: _currentTheme['primaryColor'])
+                .copyWith(secondary: _currentTheme['accentColor']),
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _textEditingController,
-              decoration: InputDecoration(
-                labelText: 'Add Todo',
+      home: Scaffold(
+        appBar: AppBar(
+          title: Text('Todo List'),
+        ),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextField(
+                controller: _textEditingController,
+                decoration: InputDecoration(
+                  labelText: 'Add Todo',
+                ),
+                onSubmitted: (_) => _addTodo(),
               ),
-              onSubmitted: (_) => _addTodo(),
             ),
-          ),
-          DropdownButton<String>(
-            value: _currentFilter, // Display the current filter mode
-            items: ['All', 'Done', 'Undone', 'Progress', 'Cancel']
-                .map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-            onChanged: (String? value) {
-              if (value != null) {
-                _filterTodos(value);
-              }
-            },
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _todos.length,
-              itemBuilder: (context, index) {
-                final todo = _todos[index];
-                return ListTile(
-                  leading: Checkbox(
-                    value: todo.isDone,
-                    onChanged: (bool? value) {
-                      if (value != null) {
-                        _updateTodoStatus(index, value);
-                      }
-                    },
-                  ),
-                  title: Text(todo.title),
-                  trailing: IconButton(
-                    icon: Icon(Icons.delete),
-                    onPressed: () => _deleteTodoAt(index),
-                  ),
+            DropdownButton<Map<String, dynamic>>(
+              value: _currentTheme,
+              items: _colorThemes
+                  .map<DropdownMenuItem<Map<String, dynamic>>>((theme) {
+                return DropdownMenuItem<Map<String, dynamic>>(
+                  value: theme,
+                  child: Text(theme['name']),
                 );
+              }).toList(),
+              onChanged: (Map<String, dynamic>? value) {
+                if (value != null) {
+                  setState(() {
+                    _currentTheme = value;
+                  });
+                }
               },
             ),
-          ),
-        ],
+            DropdownButton<String>(
+              value: _currentFilter,
+              items: ['All', 'Done', 'Undone', 'Progress', 'Cancel']
+                  .map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (String? value) {
+                if (value != null) {
+                  _filterTodos(value);
+                }
+              },
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _todos.length,
+                itemBuilder: (context, index) {
+                  final todo = _todos[index];
+                  return ListTile(
+                    leading: Checkbox(
+                      value: todo.isDone,
+                      onChanged: (bool? value) {
+                        if (value != null) {
+                          _updateTodoStatus(index, value);
+                        }
+                      },
+                    ),
+                    title: Text(todo.title),
+                    trailing: IconButton(
+                      icon: Icon(Icons.delete),
+                      onPressed: () => _deleteTodoAt(index),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
