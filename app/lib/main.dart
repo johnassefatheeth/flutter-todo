@@ -182,9 +182,8 @@ class _TodoListScreenState extends State<TodoListScreen> {
     return MaterialApp(
       title: 'Todo App',
       theme: ThemeData(
-        colorScheme:
-            ColorScheme.fromSwatch(primarySwatch: _currentTheme['primaryColor'])
-                .copyWith(secondary: _currentTheme['accentColor']),
+        primarySwatch: _currentTheme['primaryColor'],
+        // accentColor: _currentTheme['accentColor'],
       ),
       home: Scaffold(
         appBar: AppBar(
