@@ -71,6 +71,11 @@ class _TodoListScreenState extends State<TodoListScreen> {
       'primaryColor': Colors.red,
       'accentColor': Colors.redAccent,
     },
+    {
+      'name': 'purple',
+      'primaryColor': Colors.purple,
+      'accentColor': Colors.purple,
+    },
   ];
 
   @override
